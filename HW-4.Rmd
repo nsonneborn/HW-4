@@ -1,6 +1,6 @@
 ---
 title: "MATH 216 Homework 4"
-author: "WRITE YOUR NAME HERE"
+author: Nina Sonneborn
 output:
   html_document:
     toc: true
@@ -26,7 +26,7 @@ Please indicate
 
 * Who you collaborated with:
 * Roughly how much time you spent on this HW so far:
-* The URL of the RPubs published URL [here](https://www.nhl.com/).
+* The URL of the RPubs published URL [here](http://rpubs.com/nsonneborn/hw-4).
 * What gave you the most trouble:
 * Any comments you have:
 
@@ -43,24 +43,80 @@ which is marked on the map with a large red dot.
 
 ```{r, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5}
 # Perform your computations here:
+# distance = sqrt(change_long_squared + change_in_lat_squared)
+
+#Load the data
+counties_sp <- us_counties()
+counties_data <- counties_sp@data %>% mutate(n=1:3220)
+centroids <- coordinates(counties_sp)
+county_poly <- tidy(counties_sp, region = "geoid")
+
+centroids <- as.data.frame(centroids) %>% 
+  mutate(long = V1, lat = V2, n=1:3220) %>% 
+  select(n, long, lat)
+
+# for population data...
+census <- read_csv('census_2010.csv') %>% 
+  select(Geo_FIPS, SE_T001_001) %>% 
+  mutate(population=SE_T001_001)
+
+counties_data <- left_join(counties_data, centroids, by = "n")
+
+counties <- left_join(county_poly, counties_data, by=c("id"="geoid")) %>%
+  filter(!is.na(state_name)) %>%
+  filter( !state_name %in% c("Alaska", "Hawaii", "Puerto Rico"))
+
+counties1 <- left_join(county_poly, counties_data, by=c("id"="geoid")) %>% 
+  filter(!state_name %in% c("Alaska", "Hawaii", "Puerto Rico"))
+
+hub_data <- left_join(counties, census, by=c("id"="Geo_FIPS")) %>% 
+  select(long.y, lat.y, population, id)
+
+hub_data <- hub_data %>% mutate(long=long.y, lat = lat.y) %>% select(long, lat, population, id)
+
+hub_data <-  hub_data %>% unique() %>% mutate(n=1:3108)
+# Calculated weighted center twice: once for latitude, once for longitude.
+
+find_hub <- hub_data %>%
+  group_by(n) %>%
+  filter(!is.na(population)) %>% #ignore a single missing value in row 2891
+  mutate(weighted_lat = as.numeric(population)*lat) %>%
+  mutate(weighted_long = as.numeric(population)*long)
+
+find_hub %>% ungroup() %>% summarise(hub_lat = sum(weighted_lat)/sum(as.numeric(population)))
+
+find_hub %>% ungroup() %>% summarise(hub_long = sum(weighted_long)/sum(as.numeric(population)))
+
+hub_lat <- 37.5508
+hub_long <- -91.649
+
+
+# Find the population center
+hub_data <- hub_data %>% 
+  mutate(distance = sqrt((long - hub_long)^2 + (lat - hub_lat)^2))
+
+hub_distance_data <-left_join(counties1, hub_data, by="id")
 
 ```
 
+The formula for one-dimensional center of mass is [here](http://hyperphysics.phy-astr.gsu.edu/hbase/imgmec/cm.gif)
+In the case of this 
 
 ```{r, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5}
 # Here is a template of a ggplot call; feel free to change this to suit your
 # needs. Once your computations above are complete, set the eval=TRUE on the
 # line above to tell R Markdown to run this code block.
-ggplot(data=geo_data, aes(x=long, y=lat, group=group, fill=distance)) +
+ggplot(data=hub_distance_data, aes(x=long.x, y=lat.x, group = group, fill=distance)) +
   # Plot choropleth polygons, low -> high being colored white -> dark green
   geom_polygon() +
   scale_fill_gradient(low="white", high="darkgreen") + 
   # Trace outlines of areas
   geom_path(size=0.1) +
   # Mark hub
-  annotate("point", x=hub_x_coord, y=hub_y_coord, col="red", size=5) +
+  annotate("point", x=hub_long, y=hub_lat, col="red", size=5) +
   # Correct aspect ratio for map
-  coord_map()
+  coord_map() +
+  labs(title = "Shipping hub and distances weighted by population")
 ```
 
 
