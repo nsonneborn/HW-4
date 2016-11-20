@@ -102,7 +102,7 @@ hub_distance_data <-left_join(counties1, hub_data, by="id")
 The formula for one-dimensional center of mass is [here](http://hyperphysics.phy-astr.gsu.edu/hbase/imgmec/cm.gif)
 In the case of this 
 
-```{r, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5}
+```{r, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5}
 # Here is a template of a ggplot call; feel free to change this to suit your
 # needs. Once your computations above are complete, set the eval=TRUE on the
 # line above to tell R Markdown to run this code block.
@@ -116,7 +116,7 @@ ggplot(data=hub_distance_data, aes(x=long.x, y=lat.x, group = group, fill=distan
   annotate("point", x=hub_long, y=hub_lat, col="red", size=5) +
   # Correct aspect ratio for map
   coord_map() +
-  labs(title = "Shipping hub and distances weighted by population")
+  labs(title = "Distance from Shipping Hub")
 ```
 
 
